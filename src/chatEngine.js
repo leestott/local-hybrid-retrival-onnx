@@ -323,10 +323,15 @@ export class ChatEngine {
     await streamPromise;
   }
 
-  close() {
+  async close() {
     if (this.model) {
-      this.model.unload().catch(() => {});
+      await this.model.unload().catch(() => {});
+      this.model = null;
+      this.chatClient = null;
     }
-    if (this.store) this.store.close();
+    if (this.store) {
+      this.store.close();
+      this.store = null;
+    }
   }
 }

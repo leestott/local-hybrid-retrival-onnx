@@ -31,6 +31,10 @@ app.use(express.static(config.publicDir));
 
 // ── Chat engine instance ──
 const engine = new ChatEngine();
+let engineReady = false;
+let lastStatus = { phase: "init", message: "Starting..." };
+let server = null;
+let shuttingDown = false;
 
 // ── API: Chat (non-streaming) ──
 app.post("/api/chat", async (req, res) => {
@@ -159,8 +163,6 @@ app.get("/api/docs", (_req, res) => {
 });
 
 // ── API: Health check ──
-let engineReady = false;
-let lastStatus = { phase: "init", message: "Starting..." };
 
 app.get("/api/health", (_req, res) => {
   res.json({
@@ -203,6 +205,29 @@ function broadcastStatus(status) {
   if (status.phase === "ready") statusClients.clear();
 }
 
+async function listen(serverInstance) {
+  await new Promise((resolve, reject) => {
+    serverInstance.once("listening", resolve);
+    serverInstance.once("error", reject);
+  });
+}
+
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  if (signal) {
+    console.log(`\n[Server] Received ${signal}. Shutting down...`);
+  }
+
+  if (server) {
+    await new Promise((resolve) => server.close(resolve));
+    server = null;
+  }
+
+  await engine.close();
+}
+
 // ── Fallback: serve index.html for SPA ──
 app.get("*", (_req, res) => {
   res.sendFile(path.join(config.publicDir, "index.html"));
@@ -215,28 +240,35 @@ async function start() {
   // Register status callback to relay progress to connected UI clients
   engine.onStatus((status) => broadcastStatus(status));
 
-  // Start the HTTP server first so the UI is immediately accessible
-  const server = app.listen(config.port, config.host, () => {
-    console.log(`[Server] UI available at http://${config.host}:${config.port}`);
-    console.log("[Server] Initializing model in background...\n");
-  });
+  // Bind the port successfully before loading the native model stack.
+  server = app.listen(config.port, config.host);
 
-  server.on("error", (err) => {
+  try {
+    await listen(server);
+  } catch (err) {
+    server = null;
     if (err.code === "EADDRINUSE") {
       console.error(
         `[Server] Port ${config.port} is already in use.\n` +
         `  → Stop the other process or set a different port:\n` +
         `    $env:PORT = 3001; npm start`
       );
-      process.exit(1);
     }
     throw err;
-  });
+  }
+
+  console.log(`[Server] UI available at http://${config.host}:${config.port}`);
+  console.log("[Server] Initializing model in background...\n");
 
   // Initialize the engine (downloads model if needed, loads it)
-  await engine.init();
-  engineReady = true;
-  broadcastStatus({ phase: "ready", message: "Ready", retrieval: engine.getRetrievalStatus() });
+  try {
+    await engine.init();
+    engineReady = true;
+    broadcastStatus({ phase: "ready", message: "Ready", retrieval: engine.getRetrievalStatus() });
+  } catch (err) {
+    await shutdown();
+    throw err;
+  }
 
   console.log("[Server] Fully offline – no outbound connections.\n");
 }
@@ -244,5 +276,13 @@ async function start() {
 start().catch((err) => {
   console.error("Failed to start:", err);
   broadcastStatus({ phase: "error", message: err.message || "Failed to start" });
-  process.exit(1);
+  shutdown().finally(() => process.exit(1));
+});
+
+process.once("SIGINT", () => {
+  shutdown("SIGINT").finally(() => process.exit(0));
+});
+
+process.once("SIGTERM", () => {
+  shutdown("SIGTERM").finally(() => process.exit(0));
 });

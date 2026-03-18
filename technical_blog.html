@@ -4,570 +4,229 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Build an Offline Hybrid RAG Stack with ONNX and Foundry Local</title>
-  <meta name="description" content="A technical guide for AI engineers and developers getting started with ONNX powered hybrid RAG and Foundry Local, including architecture, code walkthroughs, screenshots, and a comparison with RAG and CAG.">
+  <meta name="description" content="Technical guide for AI engineers and developers getting started with ONNX powered hybrid RAG and Foundry Local.">
   <style>
-    :root {
-      --ink: #142235;
-      --muted: #536173;
-      --paper: #f6f2e8;
-      --card: rgba(255, 255, 255, 0.84);
-      --line: rgba(20, 34, 53, 0.12);
-      --warm: #e46f2d;
-      --amber: #efb84e;
-      --teal: #1d9b8f;
-      --blue: #3667d6;
-      --green: #2f7d4f;
-      --shadow: 0 24px 70px rgba(20, 34, 53, 0.14);
-      --radius: 26px;
-      --radius-sm: 18px;
-      --code-bg: #132033;
-      --code-ink: #f5f7fb;
-      --code-muted: #9eb1c9;
-      --max: 1180px;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behaviour: smooth;
-    }
-
     body {
       margin: 0;
-      font-family: Aptos, "Segoe UI Variable", "Segoe UI", sans-serif;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at top left, rgba(228, 111, 45, 0.22), transparent 24%),
-        radial-gradient(circle at top right, rgba(54, 103, 214, 0.18), transparent 26%),
-        linear-gradient(180deg, #fffaf2 0%, #f6f2e8 42%, #eef6fb 100%);
-      line-height: 1.7;
+      padding: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.6;
+      color: #1f2933;
+      background: #ffffff;
     }
 
-    img {
-      max-width: 100%;
-      display: block;
-    }
-
-    a {
-      color: #1f4cc3;
-    }
-
-    code,
-    pre {
-      font-family: Consolas, "Cascadia Code", "Courier New", monospace;
-    }
-
-    .shell {
-      width: min(var(--max), calc(100% - 32px));
+    main {
+      max-width: 960px;
       margin: 0 auto;
-    }
-
-    .hero {
-      padding: 42px 0 24px;
-    }
-
-    .hero-card {
-      position: relative;
-      overflow: hidden;
-      border-radius: 36px;
-      padding: 44px;
-      background:
-        linear-gradient(135deg, rgba(228, 111, 45, 0.95) 0%, rgba(239, 184, 78, 0.94) 34%, rgba(29, 155, 143, 0.92) 70%, rgba(54, 103, 214, 0.96) 100%);
-      color: white;
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-    }
-
-    .hero-card::after {
-      content: "";
-      position: absolute;
-      right: -90px;
-      bottom: -120px;
-      width: 300px;
-      height: 300px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.13);
-      filter: blur(8px);
-    }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: 999px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-size: 0.82rem;
-      font-weight: 700;
-      background: rgba(255, 255, 255, 0.14);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(12px);
+      padding: 32px 20px 48px;
     }
 
     h1,
     h2,
     h3 {
-      margin: 0;
-      font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-      line-height: 1.05;
-      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-top: 1.6em;
+      margin-bottom: 0.6em;
     }
 
     h1 {
-      margin-top: 18px;
-      max-width: 11ch;
-      font-size: clamp(3rem, 6vw, 5.5rem);
+      margin-top: 0;
+      font-size: 2.4rem;
     }
 
-    .hero p {
-      max-width: 68ch;
-      margin: 20px 0 0;
-      font-size: 1.1rem;
-      color: rgba(255, 255, 255, 0.94);
+    h2 {
+      font-size: 1.8rem;
+      border-bottom: 1px solid #d9e2ec;
+      padding-bottom: 0.25em;
     }
 
-    .meta-strip {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 26px;
+    h3 {
+      font-size: 1.25rem;
     }
 
-    .meta-pill {
-      padding: 14px 16px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.14);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(12px);
-    }
-
-    .meta-pill strong {
-      display: block;
-      font-size: 0.9rem;
-    }
-
-    .meta-pill span {
-      display: block;
-      margin-top: 3px;
-      font-size: 0.88rem;
-      color: rgba(255, 255, 255, 0.88);
-    }
-
-    main {
-      padding: 8px 0 70px;
-    }
-
-    .section {
-      margin-top: 20px;
-      padding: 30px;
-      border-radius: var(--radius);
-      background: var(--card);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-    }
-
-    .section h2 {
-      font-size: clamp(2rem, 4vw, 3rem);
-      margin-bottom: 14px;
-    }
-
-    .section h3 {
-      font-size: 1.45rem;
-      margin: 0 0 10px;
-    }
-
-    .lede {
-      max-width: 68ch;
-      color: var(--muted);
-      font-size: 1.06rem;
-    }
-
-    .grid {
-      display: grid;
-      gap: 18px;
-    }
-
-    .grid-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .grid-3 {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .callout {
-      padding: 20px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.76);
-    }
-
-    .callout strong {
-      display: block;
-      font-size: 1rem;
-      margin-bottom: 8px;
-    }
-
-    .stack-card {
-      position: relative;
-      padding-left: 22px;
-    }
-
-    .stack-card::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      width: 8px;
-      border-radius: 999px;
-    }
-
-    .stack-card.rag::before {
-      background: var(--warm);
-    }
-
-    .stack-card.hybrid::before {
-      background: var(--teal);
-    }
-
-    .stack-card.cag::before {
-      background: var(--blue);
-    }
-
-    ul,
-    ol {
-      margin: 12px 0 0;
-      padding-left: 20px;
-    }
-
+    p,
     li,
-    p {
-      color: var(--muted);
+    td,
+    th {
+      font-size: 1rem;
     }
 
-    .code-block {
-      margin-top: 16px;
-      border-radius: 20px;
-      overflow: hidden;
-      background: var(--code-bg);
-      color: var(--code-ink);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    .meta {
+      color: #52606d;
+      margin-bottom: 24px;
     }
 
-    .code-label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: 0.82rem;
-      color: var(--code-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      background: rgba(255, 255, 255, 0.03);
+    .lead {
+      font-size: 1.08rem;
     }
 
-    pre {
-      margin: 0;
-      padding: 18px 20px;
-      overflow-x: auto;
-      font-size: 0.92rem;
-      line-height: 1.6;
-    }
-
-    .figure-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-      margin-top: 18px;
+    img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #d9e2ec;
+      margin: 16px 0 8px;
     }
 
     figure {
-      margin: 0;
-      padding: 16px;
-      border-radius: 22px;
-      background: rgba(255, 255, 255, 0.74);
-      border: 1px solid var(--line);
-    }
-
-    figure img {
-      border-radius: 14px;
-      border: 1px solid rgba(20, 34, 53, 0.12);
+      margin: 24px 0;
     }
 
     figcaption {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 0.92rem;
+      color: #52606d;
+      font-size: 0.95rem;
     }
 
-    .comparison-wrap {
+    pre {
+      background: #f5f7fa;
+      border: 1px solid #d9e2ec;
+      border-radius: 4px;
+      padding: 14px;
       overflow-x: auto;
-      margin-top: 14px;
+    }
+
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.95em;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 840px;
+      margin: 20px 0;
     }
 
     th,
     td {
-      padding: 16px 14px;
-      border-bottom: 1px solid var(--line);
+      border: 1px solid #d9e2ec;
+      padding: 10px;
       text-align: left;
       vertical-align: top;
     }
 
     th {
-      font-size: 0.82rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
+      background: #f5f7fa;
     }
 
-    .step-list {
-      counter-reset: item;
-      list-style: none;
-      padding: 0;
-      margin: 18px 0 0;
-      display: grid;
-      gap: 14px;
-    }
-
-    .step-list li {
-      position: relative;
-      padding: 18px 18px 18px 68px;
-      border-radius: 22px;
-      background: rgba(255, 255, 255, 0.76);
-      border: 1px solid var(--line);
-    }
-
-    .step-list li::before {
-      counter-increment: item;
-      content: counter(item);
-      position: absolute;
-      left: 18px;
-      top: 18px;
-      width: 34px;
-      height: 34px;
-      display: grid;
-      place-items: centre;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--warm), var(--amber));
-      color: white;
-      font-weight: 700;
-      font-size: 0.98rem;
-    }
-
-    .quote {
-      margin-top: 16px;
-      padding: 20px 22px;
-      border-left: 6px solid var(--teal);
-      border-radius: 0 18px 18px 0;
-      background: rgba(29, 155, 143, 0.08);
-      color: var(--ink);
-      font-size: 1.03rem;
-    }
-
-    .footer-note {
-      padding: 18px 0 8px;
-      text-align: centre;
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-
-    @media (max-width: 980px) {
-      .meta-strip,
-      .grid-3,
-      .grid-2,
-      .figure-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .hero-card,
-      .section {
-        padding: 26px;
-      }
-    }
-
-    @media (max-width: 640px) {
-      body {
-        line-height: 1.6;
-      }
-
-      .shell {
-        width: min(var(--max), calc(100% - 20px));
-      }
-
-      h1 {
-        font-size: 2.6rem;
-      }
-
-      .section,
-      .hero-card {
-        border-radius: 24px;
-      }
+    .note {
+      padding: 12px 14px;
+      background: #f5f7fa;
+      border-left: 4px solid #486581;
+      margin: 18px 0;
     }
   </style>
 </head>
 <body>
-  <header class="hero">
-    <div class="shell">
-      <div class="hero-card">
-        <div class="eyebrow">Technical Blog • ONNX • Foundry Local • Hybrid RAG</div>
-        <h1>Build an Offline Hybrid RAG Stack with ONNX and Foundry Local</h1>
-        <p>
-          This sample shows how to run a grounded local assistant with a Foundry Local chat model, a SQLite backed knowledge index, and an ONNX embedding pipeline for semantic retrieval. If you are an AI engineer or developer moving from a basic local RAG prototype to something more robust, this is a practical architecture to study.
-        </p>
-        <div class="meta-strip">
-          <div class="meta-pill">
-            <strong>Reading time</strong>
-            <span>10 to 15 minutes</span>
-          </div>
-          <div class="meta-pill">
-            <strong>Audience</strong>
-            <span>AI engineers and app developers</span>
-          </div>
-          <div class="meta-pill">
-            <strong>Core stack</strong>
-            <span>Node.js, ONNX, SQLite, Foundry Local</span>
-          </div>
-          <div class="meta-pill">
-            <strong>What you will learn</strong>
-            <span>Hybrid retrieval, runtime design, best practice</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-
   <main>
-    <div class="shell">
-      <section class="section">
-        <h2>Why this sample matters</h2>
-        <p class="lede">
-          Many local RAG demos stop at keyword search plus prompt stuffing. This sample goes further. It keeps lexical retrieval for exact matches, adds local ONNX embeddings for semantic similarity, stores both representations in SQLite, and uses Foundry Local for the generation step. The result is a local assistant that can answer paraphrased questions more reliably without giving up deterministic fallback behaviour.
+    <article>
+      <header>
+        <h1>Build an Offline Hybrid RAG Stack with ONNX and Foundry Local</h1>
+        <p class="meta">Audience: AI Engineers and Developers | Reading time: 10 to 15 minutes</p>
+        <p class="lead">
+          If you are building local AI applications, basic retrieval augmented generation is often only the starting point. This sample shows a more practical pattern: combine lexical retrieval, ONNX based semantic embeddings, and a Foundry Local chat model so the assistant stays grounded, remains offline, and degrades cleanly when the semantic path is unavailable.
         </p>
-        <div class="grid grid-3" style="margin-top: 20px;">
-          <div class="callout">
-            <strong>Lexical retrieval remains available</strong>
-            <p>Exact terms, product names, alarm codes, and structured procedures still rank well even if semantic retrieval is unavailable.</p>
-          </div>
-          <div class="callout">
-            <strong>Semantic retrieval runs locally</strong>
-            <p>The embedding pipeline uses a local ONNX model through Transformers.js, so the retrieval stack stays on device.</p>
-          </div>
-          <div class="callout">
-            <strong>Foundry Local handles generation</strong>
-            <p>The chat model is resolved through Foundry Local, including hardware aware model selection and local download management.</p>
-          </div>
-        </div>
+      </header>
+
+      <section>
+        <h2>Why this sample is worth studying</h2>
+        <p>
+          Many local RAG samples rely on a single retrieval strategy. That is usually enough for a proof of concept, but it breaks down quickly in production. Exact keywords, acronyms, and document codes behave differently from natural language questions and paraphrased requests.
+        </p>
+        <p>
+          This repository keeps the original lexical retrieval path, adds local ONNX embeddings for semantic search, and fuses both signals in a hybrid ranking mode. The generation step runs through Foundry Local, so the entire assistant can remain on device.
+        </p>
+        <ul>
+          <li>Lexical mode handles exact terms and structured vocabulary.</li>
+          <li>Semantic mode handles paraphrases and more natural language phrasing.</li>
+          <li>Hybrid mode combines both and is usually the best default.</li>
+          <li>Lexical fallback protects the user experience if the embedding pipeline cannot start.</li>
+        </ul>
       </section>
 
-      <section class="section">
-        <h2>What the implementation actually does</h2>
-        <div class="grid grid-2">
-          <div>
-            <h3>Offline ingestion pipeline</h3>
-            <p>
-              Markdown files in <code>docs/</code> are parsed, chunked, and written into a local SQLite database. Each chunk stores a sparse term frequency map, and if the embedding model is available, a dense embedding vector as well.
-            </p>
-            <ol class="step-list">
-              <li>Read Markdown procedures and extract front matter metadata.</li>
-              <li>Split the body into small overlapping chunks sized for local context budgets.</li>
-              <li>Generate ONNX embeddings when the model is available.</li>
-              <li>Persist lexical and semantic data together in SQLite for fast local retrieval.</li>
-            </ol>
-          </div>
-          <div>
-            <h3>Runtime query pipeline</h3>
-            <p>
-              The browser posts a question to the Express server. The chat engine resolves the requested retrieval mode, fetches the top chunks, builds the final prompt, and sends the grounded prompt to the local Foundry model.
-            </p>
-            <ol class="step-list">
-              <li>Accept a question and an optional retrieval mode from the UI.</li>
-              <li>Resolve whether the request should run in lexical, semantic, or hybrid mode.</li>
-              <li>Retrieve the most relevant chunks from SQLite, using dense similarity where available.</li>
-              <li>Inject context and history into the prompt, then generate the final answer locally.</li>
-            </ol>
-          </div>
-        </div>
-        <div class="figure-grid">
-          <figure>
-            <img src="screenshots/07-architecture-diagram.png" alt="Architecture diagram showing ingestion and local query pipelines">
-            <figcaption>
-              Architectural overview of the sample. The top lane is ingestion. The lower lane is the live query path through Express, ChatEngine, SQLite, ONNX embeddings, and Foundry Local.
-            </figcaption>
-          </figure>
-          <figure>
-            <img src="screenshots/08-rag-flow-sequence.png" alt="Sequence diagram showing lexical and hybrid retrieval modes">
-            <figcaption>
-              Sequence diagram of a chat request. The hybrid path generates a query embedding, fuses lexical and semantic scores, and then passes grounded context to the model.
-            </figcaption>
-          </figure>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>Getting started with the sample</h2>
-        <p class="lede">
-          The repository already contains the application code and sample documents. You still need Node.js 20 or newer, Foundry Local, and an ONNX embedding model on disk. The default embedding path is <code>models/embeddings/bge-small-en-v1.5</code>.
+      <section>
+        <h2>Architectural overview</h2>
+        <p>
+          The sample has two main flows: an offline ingestion pipeline and a local query pipeline.
         </p>
 
-        <div class="code-block">
-          <div class="code-label">
-            <span>Install and index the docs</span>
-            <span>PowerShell</span>
-          </div>
-          <pre><code>cd c:\Users\leestott\local-hybrid-retrival-onnx
+        <figure>
+          <img src="screenshots/07-architecture-diagram.png" alt="Architecture diagram showing the ingestion pipeline and local query pipeline">
+          <figcaption>
+            The architecture splits cleanly into offline ingestion at the top and runtime query handling at the bottom.
+          </figcaption>
+        </figure>
+
+        <h3>Offline ingestion pipeline</h3>
+        <ol>
+          <li>Read Markdown files from <code>docs/</code>.</li>
+          <li>Parse front matter and split each document into overlapping chunks.</li>
+          <li>Generate dense embeddings when the ONNX model is available.</li>
+          <li>Store chunks in SQLite with both sparse lexical features and optional dense vectors.</li>
+        </ol>
+
+        <h3>Local query pipeline</h3>
+        <ol>
+          <li>The browser posts a question to the Express API.</li>
+          <li><code>ChatEngine</code> resolves the requested retrieval mode.</li>
+          <li><code>VectorStore</code> retrieves lexical, semantic, or hybrid results.</li>
+          <li>The prompt is assembled with the retrieved context and sent to a Foundry Local chat model.</li>
+          <li>The answer is returned with source references and retrieval metadata.</li>
+        </ol>
+
+        <figure>
+          <img src="screenshots/08-rag-flow-sequence.png" alt="Sequence diagram showing lexical and hybrid retrieval flow">
+          <figcaption>
+            The sequence diagram shows the difference between lexical retrieval and hybrid retrieval. In hybrid mode, the query is embedded first, then lexical and semantic scores are fused before prompt assembly.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>Repository structure and core components</h2>
+        <p>
+          The implementation is compact and readable. The main files to understand are listed below.
+        </p>
+        <ul>
+          <li><code>src/config.js</code>: retrieval defaults, paths, and model settings.</li>
+          <li><code>src/embeddingEngine.js</code>: local ONNX embedding generation through Transformers.js.</li>
+          <li><code>src/vectorStore.js</code>: SQLite storage plus lexical, semantic, and hybrid ranking.</li>
+          <li><code>src/chatEngine.js</code>: retrieval mode resolution, prompt assembly, and Foundry Local model execution.</li>
+          <li><code>src/ingest.js</code>: document ingestion and embedding generation during indexing.</li>
+          <li><code>src/server.js</code>: REST endpoints, streaming endpoints, upload support, and health reporting.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Getting started</h2>
+        <p>
+          To run the sample, you need Node.js 20 or newer, Foundry Local, and a local ONNX embedding model. The default model path is <code>models/embeddings/bge-small-en-v1.5</code>.
+        </p>
+
+        <pre><code>cd c:\Users\leestott\local-hybrid-retrival-onnx
 npm install
 
 huggingface-cli download BAAI/bge-small-en-v1.5 --local-dir models/embeddings/bge-small-en-v1.5
 
 npm run ingest
 npm start</code></pre>
-        </div>
 
-        <div class="grid grid-2" style="margin-top: 18px;">
-          <div class="callout">
-            <strong>What ingestion stores</strong>
-            <p>Each chunk is written to <code>data/rag.db</code> with metadata, sparse lexical data, and an optional dense vector.</p>
-          </div>
-          <div class="callout">
-            <strong>What the UI exposes</strong>
-            <p>The client allows you to switch between lexical, semantic, and hybrid retrieval modes, view sources, and upload extra documents.</p>
-          </div>
-        </div>
+        <p>
+          Ingestion writes the local SQLite database to <code>data/rag.db</code>. If the embedding model is available, each chunk gets a dense vector as well as lexical features. If the embedding model is missing, ingestion still succeeds and the application remains usable in lexical mode.
+        </p>
 
-        <div class="quote">
-          Best practice: treat local model files, vector data, and runtime compatibility as deployable assets. In local AI systems the operational surface sits on the machine, not in a managed cloud service.
+        <div class="note">
+          Best practice: local AI applications should treat model files, SQLite data, and native runtime compatibility as part of the deployable system, not as optional developer conveniences.
         </div>
       </section>
 
-      <section class="section">
+      <section>
         <h2>Code walkthrough</h2>
-        <p class="lede">
-          The sample is compact enough to read in one sitting. The important design choice is that retrieval is modular. The lexical path remains first class, and the semantic path layers on top instead of replacing it.
-        </p>
 
-        <h3>1. Central configuration keeps the retrieval system simple</h3>
+        <h3>1. Retrieval configuration</h3>
         <p>
-          The retrieval mode defaults to hybrid, but the system also declares a lexical fallback and explicit score weights. Those defaults matter because they shape the user experience when the local embedding stack is unavailable.
+          The sample makes its retrieval behaviour explicit in configuration. That is useful for testing and for operator visibility.
         </p>
-        <div class="code-block">
-          <div class="code-label">
-            <span>src/config.js</span>
-            <span>retrieval defaults</span>
-          </div>
-          <pre><code>export const config = {
+        <pre><code>export const config = {
   model: "phi-3.5-mini",
   docsDir: path.join(ROOT, "docs"),
   dbPath: path.join(ROOT, "data", "rag.db"),
@@ -581,22 +240,17 @@ npm start</code></pre>
     lexical: 0.45,
     semantic: 0.55,
   },
-  embeddingModelPath: resolveFromRoot(
-    process.env.EMBEDDING_MODEL_PATH || path.join("models", "embeddings", "bge-small-en-v1.5")
-  ),
 };</code></pre>
-        </div>
 
-        <h3 style="margin-top: 22px;">2. Embeddings stay local through Transformers.js and ONNX Runtime</h3>
         <p>
-          The embedding engine explicitly disables remote model access. That is a small but important detail for air gapped or privacy sensitive deployments.
+          Those defaults tell you a lot about the intended operating profile. Chunks are small, the number of returned chunks is low, and the fallback path is explicit.
         </p>
-        <div class="code-block">
-          <div class="code-label">
-            <span>src/embeddingEngine.js</span>
-            <span>local feature extraction</span>
-          </div>
-          <pre><code>env.allowLocalModels = true;
+
+        <h3>2. Local ONNX embeddings</h3>
+        <p>
+          The embedding engine disables remote model loading and only uses local files. That matters for privacy, repeatability, and air gapped operation.
+        </p>
+        <pre><code>env.allowLocalModels = true;
 env.allowRemoteModels = false;
 
 this.extractor = await pipeline("feature-extraction", resolvedPath, {
@@ -607,53 +261,44 @@ const output = await this.extractor(text, {
   pooling: "mean",
   normalize: true,
 });</code></pre>
-        </div>
 
-        <h3 style="margin-top: 22px;">3. SQLite stores sparse and dense signals together</h3>
         <p>
-          The vector store is not a separate vector database. Instead, it persists the term frequency map and the dense embedding in the same chunk table. That keeps the system lightweight and easy to inspect.
+          The mean pooling and normalisation step make the vectors suitable for cosine similarity based ranking.
         </p>
-        <div class="code-block">
-          <div class="code-label">
-            <span>src/vectorStore.js</span>
-            <span>hybrid score fusion</span>
-          </div>
-          <pre><code>searchHybrid(query, queryEmbedding, topK = 5, weights = { lexical: 0.45, semantic: 0.55 }) {
+
+        <h3>3. Hybrid storage and ranking in SQLite</h3>
+        <p>
+          Instead of adding a separate vector database, the sample stores lexical and semantic representations in the same SQLite table. That keeps the local footprint low and the implementation easy to debug.
+        </p>
+        <pre><code>searchHybrid(query, queryEmbedding, topK = 5, weights = { lexical: 0.45, semantic: 0.55 }) {
   const lexicalResults = this.searchLexical(query, topK * 3);
   const semanticResults = this.searchSemantic(queryEmbedding, topK * 3);
 
   if (semanticResults.length === 0) {
-    return lexicalResults.slice(0, topK).map((row) => ({
+    return lexicalResults.slice(0, topK).map((row) =&gt; ({
       ...row,
       retrievalMode: "lexical",
     }));
   }
 
-  const fused = [...combined.values()].map((row) => ({
+  const fused = [...combined.values()].map((row) =&gt; ({
     ...row,
     score: (row.lexicalScore * lexicalWeight) + (row.semanticScore * semanticWeight),
-    retrievalMode: row.lexicalScore &gt; 0 &amp;&amp; row.semanticScore &gt; 0 ? "hybrid" : (row.semanticScore &gt; 0 ? "semantic" : "lexical"),
   }));
 
-  fused.sort((a, b) => b.score - a.score);
+  fused.sort((a, b) =&gt; b.score - a.score);
   return fused.slice(0, topK);
 }</code></pre>
-        </div>
 
         <p>
-          This design gives you a useful operational property. If semantic retrieval produces nothing, the system still returns ranked lexical results. You do not get an empty prompt just because the embedding branch is unavailable.
+          The important point is not just the weighted fusion. It is the fallback behaviour. If semantic retrieval cannot provide results, the user still gets lexical grounding instead of an empty context window.
         </p>
 
-        <h3 style="margin-top: 22px;">4. ChatEngine resolves retrieval mode before prompt assembly</h3>
+        <h3>4. Retrieval mode resolution in ChatEngine</h3>
         <p>
-          The runtime logic is straightforward. Resolve the requested retrieval mode, build a query embedding when needed, and fall back to lexical search if semantic retrieval cannot execute.
+          <code>ChatEngine</code> keeps the runtime behaviour predictable. It validates the requested mode and falls back to lexical search when semantic retrieval is unavailable.
         </p>
-        <div class="code-block">
-          <div class="code-label">
-            <span>src/chatEngine.js</span>
-            <span>mode resolution and fallback</span>
-          </div>
-          <pre><code>resolveRetrievalMode(requestedMode) {
+        <pre><code>resolveRetrievalMode(requestedMode) {
   const desiredMode = config.retrievalModes.includes(requestedMode)
     ? requestedMode
     : config.retrievalMode;
@@ -663,32 +308,20 @@ const output = await this.extractor(text, {
   }
 
   return desiredMode;
-}
-
-async retrieve(query, requestedMode) {
-  const topK = this.compactMode ? Math.min(config.topK, 3) : config.topK;
-  const mode = this.resolveRetrievalMode(requestedMode);
-
-  if (mode === "lexical") {
-    return { chunks: this.store.searchLexical(query, topK), retrievalMode: "lexical" };
-  }
 }</code></pre>
-        </div>
 
-        <h3 style="margin-top: 22px;">5. Foundry Local manages model discovery and loading</h3>
         <p>
-          The generation layer uses <code>FoundryLocalManager</code> to discover and load a local chat model. The code asks the catalogue for the configured model alias, downloads it if needed, then creates a chat client with conservative generation settings.
+          This is a sensible production design because local runtime failures are common. Missing model files or native dependency mismatches should reduce quality, not crash the entire assistant.
         </p>
-        <div class="code-block">
-          <div class="code-label">
-            <span>src/chatEngine.js</span>
-            <span>Foundry Local initialisation</span>
-          </div>
-          <pre><code>const manager = FoundryLocalManager.create({ appName: "gas-field-local-rag" });
+
+        <h3>5. Foundry Local model management</h3>
+        <p>
+          The sample uses <code>FoundryLocalManager</code> to discover, download, cache, and load the configured chat model.
+        </p>
+        <pre><code>const manager = FoundryLocalManager.create({ appName: "gas-field-local-rag" });
 const catalog = manager.catalog;
 
 this.model = await catalog.getModel(config.model);
-this.modelAlias = this.model.alias;
 
 if (!this.model.isCached) {
   await this.model.download((progress) =&gt; {
@@ -700,175 +333,135 @@ if (!this.model.isCached) {
 await this.model.load();
 this.chatClient = this.model.createChatClient();
 this.chatClient.settings.temperature = 0.1;</code></pre>
-        </div>
 
         <p>
-          This is a useful pattern for local app UX. The server starts, exposes a status endpoint, and streams initialisation progress to the front end rather than blocking the entire interface.
+          This gives the app a better local startup experience. The server can expose a status stream while the model initialises in the background.
         </p>
       </section>
 
-      <section class="section">
-        <h2>What users see in practice</h2>
-        <p class="lede">
-          The UI is intentionally simple. It exposes retrieval mode, edge mode, chat, and sources, which is enough to make retrieval behaviour visible during testing.
+      <section>
+        <h2>User experience and screenshots</h2>
+        <p>
+          The client is intentionally simple, which makes it useful during evaluation. You can switch retrieval mode, test questions quickly, and inspect the retrieved sources.
         </p>
-        <div class="figure-grid">
-          <figure>
-            <img src="screenshots/01-landing-page.png" alt="Landing page for the gas field support agent with hybrid mode selected">
-            <figcaption>
-              The landing view shows hybrid retrieval as a first class user choice. This is important during evaluation because you can compare response quality across modes without changing code.
-            </figcaption>
-          </figure>
-          <figure>
-            <img src="screenshots/04-sources-panel.png" alt="Chat response with sources panel and hybrid retrieval badges">
-            <figcaption>
-              The sources panel makes grounding inspectable. You can see which document chunks were used and the relative retrieval score for each result.
-            </figcaption>
-          </figure>
+
+        <figure>
+          <img src="screenshots/01-landing-page.png" alt="Landing page showing the gas field support agent UI in hybrid mode">
+          <figcaption>
+            The landing page exposes retrieval mode directly in the UI. That makes it easy to compare lexical, semantic, and hybrid behaviour during testing.
+          </figcaption>
+        </figure>
+
+        <figure>
+          <img src="screenshots/04-sources-panel.png" alt="Chat response showing sources panel and hybrid retrieval scores">
+          <figcaption>
+            The sources panel shows grounding evidence and retrieval scores, which is useful when validating whether better answers are coming from better retrieval or just model phrasing.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>Best practices for ONNX RAG and Foundry Local</h2>
+        <ul>
+          <li>Keep lexical fallback alive. Exact identifiers and runtime failures both make this necessary.</li>
+          <li>Persist sparse and dense features together where possible. It simplifies debugging and operational reasoning.</li>
+          <li>Use small chunks and conservative <code>topK</code> values for local context budgets.</li>
+          <li>Expose health and status endpoints so users can see when the model is still loading or embeddings are unavailable.</li>
+          <li>Test retrieval quality separately from generation quality.</li>
+          <li>Pin and validate native runtime dependencies, especially ONNX Runtime, before tuning prompts.</li>
+        </ul>
+
+        <div class="note">
+          Practical warning: this repository already shows why runtime validation matters. A local app can ingest documents successfully and still fail at model initialisation if the native runtime stack is misaligned.
         </div>
       </section>
 
-      <section class="section">
-        <h2>Best practices for ONNX RAG on local machines</h2>
-        <div class="grid grid-2">
-          <div class="callout stack-card hybrid">
-            <strong>Keep lexical fallback alive</strong>
-            <p>A local semantic stack can fail because of missing model files, incompatible runtimes, or packaging issues. Lexical search protects the user experience.</p>
-          </div>
-          <div class="callout stack-card hybrid">
-            <strong>Persist both sparse and dense features</strong>
-            <p>Storing TF data and embeddings together simplifies inspection, debugging, and fallback behaviour. It also keeps ingestion and retrieval logic coherent.</p>
-          </div>
-          <div class="callout stack-card hybrid">
-            <strong>Use small chunks and conservative top K</strong>
-            <p>The sample uses chunk size 200, overlap 25, and top K 3 to stay aligned with local context budgets and low latency execution.</p>
-          </div>
-          <div class="callout stack-card hybrid">
-            <strong>Expose health and status endpoints</strong>
-            <p>The sample exposes <code>/api/health</code> and <code>/api/status</code>. This is essential when users need visibility into model downloads, cached assets, and embedding availability.</p>
-          </div>
-          <div class="callout stack-card hybrid">
-            <strong>Treat native runtime alignment as a release concern</strong>
-            <p>ONNX Runtime compatibility matters. If you see API version mismatch errors, align the native runtime versions used by Foundry Local and the embedding stack before troubleshooting prompt quality.</p>
-          </div>
-          <div class="callout stack-card hybrid">
-            <strong>Test retrieval, not just generation</strong>
-            <p>The hardest bugs usually appear before generation. Validate lexical ranking, semantic ranking, hybrid fusion, and fallback mode with unit tests and representative queries.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="section">
-        <h2>Hybrid ONNX RAG versus classic RAG versus CAG</h2>
-        <p class="lede">
-          The most useful comparison is not about which acronym is newer. It is about where context is assembled, how retrieval behaves under failure, and how much operational discipline each approach requires.
+      <section>
+        <h2>How this compares with RAG and CAG</h2>
+        <p>
+          The strongest value in this sample comes from where it sits between a basic local RAG baseline and a curated CAG design.
         </p>
-        <div class="comparison-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Dimension</th>
-                <th>Classic local RAG</th>
-                <th>This hybrid ONNX RAG sample</th>
-                <th>CAG</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>How context is assembled</td>
-                <td>Retrieve chunks at query time, usually with lexical ranking, then inject them into the prompt.</td>
-                <td>Retrieve chunks at query time with lexical, semantic, or fused hybrid scoring, then inject the top chunks into the prompt.</td>
-                <td>Prepare or cache context ahead of the request and feed the model a curated pack rather than performing fresh retrieval for each query.</td>
-              </tr>
-              <tr>
-                <td>Main benefit</td>
-                <td>Simple to build, easy to reason about, and usually the fastest way to prove local grounding.</td>
-                <td>Better recall for paraphrases while still preserving exact match retrieval and graceful fallback.</td>
-                <td>Very predictable prompts and low runtime overhead once the context pack is prepared.</td>
-              </tr>
-              <tr>
-                <td>Main weakness</td>
-                <td>Lexical retrieval misses synonyms, reformulations, and fuzzy natural language queries.</td>
-                <td>More moving parts, larger local footprint, and native runtime compatibility to manage.</td>
-                <td>Coverage depends heavily on curation. If the prepared context is stale or too narrow, the assistant cannot discover new evidence at runtime.</td>
-              </tr>
-              <tr>
-                <td>Failure behaviour</td>
-                <td>Missed retrieval leads directly to weak grounding.</td>
-                <td>Semantic failure degrades to lexical mode if the system is designed properly, which this sample does.</td>
-                <td>Prepared context can become obsolete or omit the exact case the user needs.</td>
-              </tr>
-              <tr>
-                <td>Operational profile</td>
-                <td>Lower complexity but weaker recall unless you add better ranking or re ranking later.</td>
-                <td>Moderate complexity with ONNX models, embedding persistence, and score fusion, but a stronger retrieval profile.</td>
-                <td>Low query time complexity, higher editorial and maintenance discipline.</td>
-              </tr>
-              <tr>
-                <td>Best fit</td>
-                <td>First local search assistants, internal documentation bots, and small proof of concept systems.</td>
-                <td>Production minded local copilots that need offline operation and stronger recall across varied phrasing.</td>
-                <td>Tightly bounded workflows, guided procedures, and environments where prompt stability matters more than open ended discovery.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
 
-        <div class="grid grid-3" style="margin-top: 18px;">
-          <div class="callout stack-card rag">
-            <strong>Choose classic RAG when</strong>
-            <p>You need the shortest path to a local grounded assistant and your users mostly type exact domain terms.</p>
-          </div>
-          <div class="callout stack-card hybrid">
-            <strong>Choose hybrid ONNX RAG when</strong>
-            <p>You need better recall for messy language, synonyms, and varied phrasing, but still want offline execution and explicit fallback.</p>
-          </div>
-          <div class="callout stack-card cag">
-            <strong>Choose CAG when</strong>
-            <p>You can curate a stable context pack ahead of time and prioritise prompt consistency over broad runtime search.</p>
-          </div>
-        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Classic local RAG</th>
+              <th>This hybrid ONNX RAG sample</th>
+              <th>CAG</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Context assembly</td>
+              <td>Retrieve chunks at query time, often lexically, then inject them into the prompt.</td>
+              <td>Retrieve chunks at query time with lexical, semantic, or fused scoring, then inject the strongest results into the prompt.</td>
+              <td>Use a prepared or cached context pack instead of fresh retrieval for every request.</td>
+            </tr>
+            <tr>
+              <td>Main strength</td>
+              <td>Easy to implement and easy to explain.</td>
+              <td>Better recall for paraphrases without giving up exact match behaviour or offline execution.</td>
+              <td>Predictable prompts and low query time overhead.</td>
+            </tr>
+            <tr>
+              <td>Main weakness</td>
+              <td>Misses synonyms and natural language reformulations.</td>
+              <td>More moving parts, larger local asset footprint, and native runtime compatibility to manage.</td>
+              <td>Coverage depends on curation quality and goes stale more easily.</td>
+            </tr>
+            <tr>
+              <td>Failure behaviour</td>
+              <td>Weak retrieval leads to weak grounding.</td>
+              <td>Semantic failure can degrade to lexical retrieval if designed properly, which this sample does.</td>
+              <td>Prepared context can be too narrow for new or unexpected questions.</td>
+            </tr>
+            <tr>
+              <td>Best fit</td>
+              <td>Simple local assistants and proof of concept systems.</td>
+              <td>Offline copilots and technical assistants that need stronger recall across varied phrasing.</td>
+              <td>Stable workflows with tightly bounded, curated knowledge.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Specific benefits of this hybrid approach over classic RAG</h3>
+        <ul>
+          <li>It captures paraphrased questions that lexical search would often miss.</li>
+          <li>It still preserves exact match performance for codes, terms, and product names.</li>
+          <li>It gives operators a controlled degradation path when the semantic stack is unavailable.</li>
+          <li>It stays local and inspectable without introducing a separate hosted vector service.</li>
+        </ul>
+
+        <h3>Specific differences from CAG</h3>
+        <ul>
+          <li>CAG shifts effort into context curation before the request. This sample retrieves evidence dynamically at runtime.</li>
+          <li>CAG can be faster for fixed workflows, but it is usually less flexible when the document set changes.</li>
+          <li>This hybrid RAG design is better suited to open ended knowledge search and growing document collections.</li>
+        </ul>
       </section>
 
-      <section class="section">
-        <h2>What I would pay attention to before shipping</h2>
-        <div class="grid grid-2">
-          <div>
-            <h3>Retrieval quality</h3>
-            <ul>
-              <li>Measure how often hybrid retrieval returns better source coverage than lexical only search.</li>
-              <li>Check whether the top chunks are actually complementary or just near duplicates with different scores.</li>
-              <li>Evaluate exact code and acronym queries separately from natural language queries.</li>
-            </ul>
-          </div>
-          <div>
-            <h3>Runtime reliability</h3>
-            <ul>
-              <li>Verify that the embedding model directory is packaged correctly on every target machine.</li>
-              <li>Pin native dependencies and confirm ONNX Runtime compatibility in CI and on the deployment image.</li>
-              <li>Make sure the app still gives usable answers when semantic retrieval is disabled.</li>
-            </ul>
-          </div>
-        </div>
-        <div class="quote">
-          The biggest practical difference between a prototype and a deployable local assistant is not model size. It is how well the system behaves when one of the local dependencies is missing, slow, or incompatible.
-        </div>
+      <section>
+        <h2>What to validate before shipping</h2>
+        <ul>
+          <li>Measure retrieval quality in each mode using exact term, acronym, and paraphrase queries.</li>
+          <li>Check that sources shown in the UI reflect genuinely distinct evidence, not repeated chunks.</li>
+          <li>Confirm the application remains usable when semantic retrieval is unavailable.</li>
+          <li>Verify ONNX Runtime compatibility on the real target machines, not only on the development laptop.</li>
+          <li>Test model download, cache, and startup behaviour with a clean environment.</li>
+        </ul>
       </section>
 
-      <section class="section">
+      <section>
         <h2>Final take</h2>
         <p>
-          If you are getting started with ONNX RAG and Foundry Local, this repository is a strong reference implementation because it does not pretend local AI systems are frictionless. It shows the real engineering trade off: you get better retrieval quality by combining lexical and semantic search, but you must also design for fallback, observability, and runtime alignment.
+          For developers getting started with ONNX RAG and Foundry Local, this sample is a good technical reference because it demonstrates a realistic local architecture rather than a minimal demo. It shows how to build a grounded assistant that remains offline, supports multiple retrieval modes, and fails gracefully.
         </p>
         <p>
-          Compared with a basic local RAG system, this hybrid approach gives you broader recall and more resilient behaviour. Compared with CAG, it gives you much more flexibility for changing document sets and open ended questions. If your goal is a practical local assistant that still feels grounded and inspectable, hybrid ONNX RAG is the most balanced place to start.
+          Compared with classic local RAG, the hybrid design provides better recall and better resilience. Compared with CAG, it remains more flexible for changing document sets and less dependent on pre curated context packs. If you want a practical starting point for offline grounded AI on developer workstations or edge devices, this is the most balanced pattern in the repository set.
         </p>
       </section>
-
-      <div class="footer-note">
-        Built for the local-hybrid-retrival-onnx sample. All screenshots and architecture references in this article come from the repository.
-      </div>
-    </div>
+    </article>
   </main>
 </body>
 </html>
