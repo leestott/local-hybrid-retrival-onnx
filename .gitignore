@@ -3,6 +3,8 @@ data/
 models/
 dist/
 coverage/
+.npm-cache-render/
+.playwright-mcp/
 
 .env
 .env.*

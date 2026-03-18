@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Choosing a Local AI Retrieval Stack</title>
+  <style>
+    :root {
+      --ink: #102033;
+      --muted: #4d5a6b;
+      --paper: #fffaf2;
+      --panel: rgba(255, 255, 255, 0.82);
+      --line: rgba(16, 32, 51, 0.14);
+      --hot: #ff6b57;
+      --gold: #f4b942;
+      --teal: #1ca7a5;
+      --blue: #4f6df5;
+      --green: #3a9b64;
+      --shadow: 0 22px 60px rgba(16, 32, 51, 0.12);
+      --radius: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behaviour: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Aptos, "Segoe UI Variable", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(244, 185, 66, 0.34), transparent 28%),
+        radial-gradient(circle at top right, rgba(79, 109, 245, 0.22), transparent 24%),
+        linear-gradient(180deg, #fff7ed 0%, #fffdf8 48%, #eef8ff 100%);
+      line-height: 1.6;
+    }
+
+    h1, h2, h3 {
+      font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    a {
+      color: #1e40af;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 48px 0 24px;
+    }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(16, 32, 51, 0.1);
+      border-radius: 36px;
+      background:
+        linear-gradient(135deg, rgba(255, 107, 87, 0.92), rgba(244, 185, 66, 0.94) 34%, rgba(28, 167, 165, 0.92) 70%, rgba(79, 109, 245, 0.95));
+      box-shadow: var(--shadow);
+      color: white;
+      padding: 44px;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -120px -120px auto;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      filter: blur(6px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero h1 {
+      max-width: 12ch;
+      font-size: clamp(3.2rem, 6vw, 5.8rem);
+      margin-top: 18px;
+    }
+
+    .hero p {
+      max-width: 62ch;
+      font-size: 1.12rem;
+      margin: 20px 0 0;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .hero-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .hero-links a {
+      text-decoration: none;
+      color: white;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    main {
+      padding: 14px 0 64px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .stack {
+      gap: 22px;
+    }
+
+    .metric-grid {
+      margin-top: 22px;
+    }
+
+    .panel h2 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin-bottom: 16px;
+    }
+
+    .panel h3 {
+      font-size: 1.45rem;
+      margin-bottom: 12px;
+    }
+
+    .lede {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 64ch;
+    }
+
+    .metric {
+      border-radius: 22px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 2.4rem;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stack-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 100%;
+    }
+
+    .stack-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 8px;
+      border-radius: 999px;
+    }
+
+    .stack-card.rag::before {
+      background: var(--hot);
+    }
+
+    .stack-card.hybrid::before {
+      background: var(--teal);
+    }
+
+    .stack-card.cag::before {
+      background: var(--blue);
+    }
+
+    .stack-card ul,
+    .decision ul,
+    .table ul {
+      margin: 14px 0 0;
+      padding-left: 18px;
+    }
+
+    .stack-card p,
+    .decision p,
+    .table p,
+    .panel p,
+    .panel li {
+      color: var(--muted);
+    }
+
+    .comparison {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      margin-top: 8px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      padding: 18px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink);
+    }
+
+    td:first-child,
+    th:first-child {
+      padding-left: 0;
+    }
+
+    td:last-child,
+    th:last-child {
+      padding-right: 0;
+    }
+
+    .decision {
+      position: relative;
+      background: linear-gradient(180deg, rgba(16, 32, 51, 0.96), rgba(28, 42, 64, 0.98));
+      color: white;
+    }
+
+    .decision p,
+    .decision li {
+      color: rgba(255, 255, 255, 0.84);
+    }
+
+    .decision-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 20px;
+    }
+
+    .choice {
+      border-radius: 22px;
+      padding: 22px;
+      min-height: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .choice strong {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .choice.rag strong {
+      background: rgba(255, 107, 87, 0.16);
+      color: #ffd0c8;
+    }
+
+    .choice.hybrid strong {
+      background: rgba(28, 167, 165, 0.16);
+      color: #c7f7f5;
+    }
+
+    .choice.cag strong {
+      background: rgba(79, 109, 245, 0.16);
+      color: #d7e0ff;
+    }
+
+    .footer-note {
+      margin-top: 26px;
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    @media (max-width: 980px) {
+      .grid-3,
+      .grid-2,
+      .decision-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-card {
+        padding: 30px;
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .hero-card,
+      .panel {
+        animation: rise 650ms ease both;
+      }
+
+      .grid > *:nth-child(2) {
+        animation-delay: 80ms;
+      }
+
+      .grid > *:nth-child(3) {
+        animation-delay: 160ms;
+      }
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="shell">
+      <section class="hero-card">
+        <div class="eyebrow">Local AI architecture guide</div>
+        <h1>Which local retrieval stack should you actually build?</h1>
+        <p>
+          AI engineers do not need another vague retrieval explainer. They need an honest view of trade-offs.
+          This post compares a classic local RAG baseline, this hybrid ONNX-powered local retrieval build, and a local CAG approach so you can choose the right operating model for your product, hardware envelope, and maintenance budget.
+        </p>
+        <div class="hero-links">
+          <a href="https://aka.ms/leestott/local-rag">Reference: local-rag</a>
+          <a href="https://aka.ms/leestott/local-cag">Reference: local-cag</a>
+          <a href="https://github.com/leestott/local-hybrid-retrival-onnx">Reference: local-hybrid-retrival-onnx</a>
+        </div>
+      </section>
+    </div>
+  </header>
+
+  <main>
+    <div class="shell grid stack">
+      <section class="panel">
+        <h2>The short version</h2>
+        <p class="lede">
+          If you want the simplest local pipeline, start with local RAG. If you need better recall without leaving the device, this hybrid ONNX design is the better production path. If your knowledge base is stable, compact, and heavily curated, local CAG can beat both on latency and operational simplicity.
+        </p>
+        <div class="grid grid-3 metric-grid">
+          <div class="metric">
+            <strong>RAG</strong>
+            Strong default for searchable document sets with clear chunk boundaries.
+          </div>
+          <div class="metric">
+            <strong>Hybrid</strong>
+            Best balance when you need exact keyword hits and semantic recall together.
+          </div>
+          <div class="metric">
+            <strong>CAG</strong>
+            Best when you can pre-package context and avoid retrieval at query time.
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-3">
+        <article class="panel stack-card rag">
+          <h3>Local RAG</h3>
+          <p>
+            The local-rag pattern is retrieval first, generation second. Documents are chunked, indexed, searched at request time, and then inserted into the model prompt.
+          </p>
+          <ul>
+            <li>Benefits: straightforward architecture, easy to reason about, solid for documentation search and support flows.</li>
+            <li>Shortcomings: weak on paraphrase-heavy questions when retrieval is lexical only, and sensitive to chunking quality.</li>
+            <li>Best fit: teams validating a use case before investing in local embeddings or ranking fusion.</li>
+          </ul>
+        </article>
+
+        <article class="panel stack-card hybrid">
+          <h3>Hybrid local retrieval with ONNX</h3>
+          <p>
+            This repository extends the RAG baseline with local embeddings, semantic ranking, and a hybrid fusion path while preserving lexical search as a fallback.
+          </p>
+          <ul>
+            <li>Benefits: better recall for synonyms and natural language queries, safer degradation when the embedding stack is unavailable, and more control over retrieval behaviour.</li>
+            <li>Shortcomings: more moving parts, larger local footprint, ONNX runtime compatibility to manage, and extra ingest time.</li>
+            <li>Best fit: teams moving from prototype to robust local knowledge search on laptops, desktops, or edge machines.</li>
+          </ul>
+        </article>
+
+        <article class="panel stack-card cag">
+          <h3>Local CAG</h3>
+          <p>
+            A local CAG approach shifts effort earlier. Instead of retrieving fresh chunks for every prompt, you curate or pre-assemble the context pack that the model will consume.
+          </p>
+          <ul>
+            <li>Benefits: very fast request path, predictable prompts, and fewer runtime retrieval errors.</li>
+            <li>Shortcomings: poorer flexibility for broad or changing corpora, more editorial overhead, and weaker coverage when users ask outside the prepared context envelope.</li>
+            <li>Best fit: fixed playbooks, narrow operating procedures, and workflows where prompt stability matters more than discovery.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="panel comparison">
+        <h2>Architecture comparison</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>Local RAG</th>
+              <th>This hybrid ONNX design</th>
+              <th>Local CAG</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Query-time behaviour</td>
+              <td>Retrieve chunks, then generate</td>
+              <td>Retrieve lexically and semantically, then fuse and generate</td>
+              <td>Inject pre-curated context, then generate</td>
+            </tr>
+            <tr>
+              <td>Recall profile</td>
+              <td>Good for exact phrases and structured terminology</td>
+              <td>Better for mixed phrasing, jargon, and paraphrase</td>
+              <td>Excellent only where the prepared context already covers the task</td>
+            </tr>
+            <tr>
+              <td>Operational cost</td>
+              <td>Lowest initial complexity</td>
+              <td>Moderate complexity with model files, vector persistence, and runtime alignment</td>
+              <td>Low runtime complexity, but higher curation discipline</td>
+            </tr>
+            <tr>
+              <td>Failure mode</td>
+              <td>Missed retrieval leads to thin prompts</td>
+              <td>Embedding issues can degrade to lexical mode, but misaligned runtimes still need attention</td>
+              <td>Prepared context becomes stale or too narrow for the user request</td>
+            </tr>
+            <tr>
+              <td>Best use case</td>
+              <td>Search over moderate document sets</td>
+              <td>Local support copilots and technical knowledge assistants</td>
+              <td>Procedure-heavy assistants with tightly bounded knowledge</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="grid grid-2">
+        <article class="panel table">
+          <h2>Why this hybrid approach is compelling</h2>
+          <p>
+            The strongest part of this solution is not that it adds embeddings. It is that it keeps the lexical path alive. That matters because local deployments rarely fail in neat ways. Files go missing, runtime versions drift, and developers need a system that degrades gracefully instead of stopping outright.
+          </p>
+          <ul>
+            <li>Lexical retrieval still catches exact codes, valve names, alarm identifiers, and specialist terminology.</li>
+            <li>Semantic retrieval covers paraphrases that users actually type into chat interfaces.</li>
+            <li>Hybrid fusion gives you a realistic route to better recall without handing everything to a remote service.</li>
+            <li>The health endpoint exposes retrieval state, indexed chunks, and available embedding assets, which is useful for local operations.</li>
+          </ul>
+        </article>
+
+        <article class="panel table">
+          <h2>Where it still falls short</h2>
+          <p>
+            This is not a free upgrade over basic local RAG. Embeddings introduce their own operational surface area, especially on Windows desktops where runtime packaging and native dependencies can be fragile.
+          </p>
+          <ul>
+            <li>Embedding model distribution is now part of your release story.</li>
+            <li>Indexing takes longer because every chunk may need a vector.</li>
+            <li>You need testing around fallback behaviour, ranking quality, and runtime health.</li>
+            <li>For small and static knowledge packs, CAG can be simpler and just as effective.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="panel decision">
+        <h2>Which approach should developers take?</h2>
+        <p>
+          Take the least complex architecture that still matches your knowledge shape. Most teams should not begin with the most advanced stack. They should begin with the stack that fits their content volatility, query variability, and support burden.
+        </p>
+        <div class="decision-grid">
+          <div class="choice rag">
+            <strong>Choose local RAG</strong>
+            <p>when you are proving value, your documents are easy to search, and your team wants a small local deployment surface.</p>
+          </div>
+          <div class="choice hybrid">
+            <strong>Choose this hybrid design</strong>
+            <p>when users ask messy natural language questions, terminology varies, and you need better recall without abandoning offline execution.</p>
+          </div>
+          <div class="choice cag">
+            <strong>Choose local CAG</strong>
+            <p>when the assistant operates inside a narrow, carefully maintained body of knowledge and prompt stability is more important than open-ended search.</p>
+          </div>
+        </div>
+        <p class="footer-note">
+          Practical recommendation: start with local RAG, move to hybrid once retrieval misses become visible in evaluation, and use CAG only where the domain is stable enough to justify pre-curated context packs.
+        </p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

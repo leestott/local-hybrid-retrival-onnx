@@ -1,55 +1,66 @@
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "fontFamily": "Trebuchet MS, Arial, sans-serif",
-    "primaryColor": "#E7F1ED",
-    "primaryTextColor": "#153B2E",
-    "primaryBorderColor": "#2F6B53",
-    "lineColor": "#456B5A",
-    "secondaryColor": "#FFF3D6",
-    "tertiaryColor": "#E5EEF9",
-    "clusterBkg": "#F7FAF8",
-    "clusterBorder": "#9CB8AA"
+    "background": "#FFF9F1",
+    "fontFamily": "Aptos, Segoe UI, Trebuchet MS, sans-serif",
+    "fontSize": "18px",
+    "primaryTextColor": "#18212F",
+    "lineColor": "#355070",
+    "clusterBkg": "#FFFDF8",
+    "clusterBorder": "#355070"
   },
   "flowchart": {
     "curve": "basis",
-    "nodeSpacing": 30,
-    "rankSpacing": 40
+    "nodeSpacing": 34,
+    "rankSpacing": 46,
+    "padding": 18
   }
 } }%%
 flowchart LR
   browser["Browser UI<br/>public/index.html"] -->|HTTP + SSE| server["Express Server<br/>src/server.js"]
 
-  subgraph runtime["Online Query Path"]
+  subgraph runtime["Local query pipeline"]
     server --> engine["ChatEngine<br/>src/chatEngine.js"]
-    engine --> mode["Retrieval Mode Resolver<br/>lexical | semantic | hybrid"]
+    engine --> mode["Retrieval mode resolver<br/>lexical | semantic | hybrid"]
     mode --> store["VectorStore<br/>SQLite chunk index"]
     mode --> embed["EmbeddingEngine<br/>local ONNX model"]
-    store --> context["Top-K chunks + scores"]
+    store --> context["Top-k chunks plus scores"]
     embed --> context
     context --> prompt["Prompt assembly<br/>context + history + system prompt"]
     prompt --> model["Foundry Local chat model"]
-    model --> answer["Grounded answer + sources"]
+    model --> answer["Grounded answer plus sources"]
     answer --> server
   end
 
-  subgraph ingest["Offline Ingestion Path"]
+  subgraph ingest["Offline ingestion pipeline"]
     docs["Markdown procedures<br/>docs/*.md"] --> chunker["Chunker<br/>front matter + text splitting"]
     chunker --> ingestScript["Ingest script<br/>src/ingest.js"]
     ingestScript --> embedBatch["Batch embeddings<br/>optional"]
-    ingestScript --> storeWrite["Persist chunks + TF vectors"]
+    ingestScript --> storeWrite["Persist chunks plus TF vectors"]
+    ingestScript --> db[("SQLite database<br/>data/")]
     embedBatch --> storeWrite
-    storeWrite --> db[("SQLite database<br/>data/")]
+    storeWrite --> db
   end
 
   store --- db
   embed -. local model files .-> modelAssets["models/embeddings/.../model.onnx"]
   model -. local runtime .-> foundryRuntime["Foundry Local runtime"]
 
-  classDef app fill:#E7F1ED,stroke:#2F6B53,color:#153B2E,stroke-width:1.5px;
-  classDef data fill:#FFF3D6,stroke:#B27A00,color:#5A4100,stroke-width:1.5px;
-  classDef infra fill:#E5EEF9,stroke:#4167A8,color:#16325C,stroke-width:1.5px;
+  classDef edgePortal fill:#FF6B6B,stroke:#9F2D2D,color:#FFFFFF,stroke-width:3px;
+  classDef orchestration fill:#FFD166,stroke:#B57700,color:#3F2A00,stroke-width:3px;
+  classDef retrieval fill:#4ECDC4,stroke:#147D75,color:#083733,stroke-width:3px;
+  classDef storage fill:#F7B267,stroke:#B85C00,color:#4A2500,stroke-width:3px;
+  classDef model fill:#6C8CFF,stroke:#2445B3,color:#081A52,stroke-width:3px;
+  classDef output fill:#95D5B2,stroke:#2D6A4F,color:#163924,stroke-width:3px;
+  classDef source fill:#F25F5C,stroke:#A11D1A,color:#FFFFFF,stroke-width:3px;
 
-  class browser,server,engine,mode,chunker,ingestScript,prompt,answer app;
-  class store,context,docs,db,storeWrite,embedBatch data;
-  class embed,model,modelAssets,foundryRuntime infra;
+  class browser,answer edgePortal;
+  class server,engine,chunker,ingestScript,prompt orchestration;
+  class mode,embed,context retrieval;
+  class store,db,storeWrite,embedBatch storage;
+  class model,modelAssets,foundryRuntime model;
+  class docs source;
+
+  style runtime fill:#F5FBFF,stroke:#355070,stroke-width:3px,color:#18212F;
+  style ingest fill:#FFF4E6,stroke:#7F5539,stroke-width:3px,color:#18212F;
+  linkStyle default stroke:#355070,stroke-width:2.5px;
