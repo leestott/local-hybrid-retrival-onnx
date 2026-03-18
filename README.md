@@ -2,6 +2,12 @@
 
 Offline hybrid RAG sample based on the original local-rag project.
 
+Related samples:
+
+- [local-rag](https://github.com/leestott/local-rag)
+- [local-cag](https://github.com/leestott/local-cag)
+- [local-hybrid-retrival-onnx](https://github.com/leestott/local-hybrid-retrival-onnx.git/)
+
 This repository is prepared for public source sharing as a standalone folder. Local models, generated SQLite data, dependencies, and environment files are intentionally excluded from version control.
 
 This version keeps the existing lexical term-frequency retrieval path and adds local ONNX embeddings for semantic retrieval. At runtime you can choose:

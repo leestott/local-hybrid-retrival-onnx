@@ -6,9 +6,9 @@ AI engineers do not need another vague retrieval explainer. They need an honest 
 
 Reference links:
 
-- [local-rag](https://aka.ms/leestott/local-rag)
-- [local-cag](https://aka.ms/leestott/local-cag)
-- [local-hybrid-retrival-onnx](https://github.com/leestott/local-hybrid-retrival-onnx)
+- [local-rag](https://github.com/leestott/local-rag)
+- [local-cag](https://github.com/leestott/local-cag)
+- [local-hybrid-retrival-onnx](https://github.com/leestott/local-hybrid-retrival-onnx.git/)
 
 ## The Short Version
 
