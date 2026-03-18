@@ -3,7 +3,7 @@
   "themeVariables": {
     "background": "#FFF9F1",
     "fontFamily": "Aptos, Segoe UI, Trebuchet MS, sans-serif",
-    "fontSize": "18px",
+    "fontSize": "24px",
     "primaryTextColor": "#18212F",
     "lineColor": "#355070",
     "clusterBkg": "#FFFDF8",
@@ -11,15 +11,27 @@
   },
   "flowchart": {
     "curve": "basis",
-    "nodeSpacing": 34,
-    "rankSpacing": 46,
-    "padding": 18
+    "nodeSpacing": 42,
+    "rankSpacing": 58,
+    "padding": 26
   }
 } }%%
-flowchart LR
+flowchart TB
+  subgraph ingest["Offline ingestion pipeline"]
+    direction LR
+    docs["Markdown procedures<br/>docs/*.md"] --> chunker["Chunker<br/>front matter + text splitting"]
+    chunker --> ingestScript["Ingest script<br/>src/ingest.js"]
+    ingestScript --> embedBatch["Batch embeddings<br/>optional"]
+    ingestScript --> storeWrite["Persist chunks plus TF vectors"]
+    storeWrite --> db[("SQLite database<br/>data/rag.db")]
+    ingestScript --> db
+    embedBatch --> storeWrite
+  end
+
   browser["Browser UI<br/>public/index.html"] -->|HTTP + SSE| server["Express Server<br/>src/server.js"]
 
   subgraph runtime["Local query pipeline"]
+    direction LR
     server --> engine["ChatEngine<br/>src/chatEngine.js"]
     engine --> mode["Retrieval mode resolver<br/>lexical | semantic | hybrid"]
     mode --> store["VectorStore<br/>SQLite chunk index"]
@@ -29,22 +41,12 @@ flowchart LR
     context --> prompt["Prompt assembly<br/>context + history + system prompt"]
     prompt --> model["Foundry Local chat model"]
     model --> answer["Grounded answer plus sources"]
-    answer --> server
-  end
-
-  subgraph ingest["Offline ingestion pipeline"]
-    docs["Markdown procedures<br/>docs/*.md"] --> chunker["Chunker<br/>front matter + text splitting"]
-    chunker --> ingestScript["Ingest script<br/>src/ingest.js"]
-    ingestScript --> embedBatch["Batch embeddings<br/>optional"]
-    ingestScript --> storeWrite["Persist chunks plus TF vectors"]
-    ingestScript --> db[("SQLite database<br/>data/")]
-    embedBatch --> storeWrite
-    storeWrite --> db
   end
 
   store --- db
-  embed -. local model files .-> modelAssets["models/embeddings/.../model.onnx"]
+  embed -. local model files .-> modelAssets["models/embeddings/...<br/>model.onnx"]
   model -. local runtime .-> foundryRuntime["Foundry Local runtime"]
+  answer -. response payload .-> browser
 
   classDef edgePortal fill:#FF6B6B,stroke:#9F2D2D,color:#FFFFFF,stroke-width:3px;
   classDef orchestration fill:#FFD166,stroke:#B57700,color:#3F2A00,stroke-width:3px;
