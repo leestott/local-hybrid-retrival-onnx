@@ -1,0 +1,55 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Trebuchet MS, Arial, sans-serif",
+    "primaryColor": "#E7F1ED",
+    "primaryTextColor": "#153B2E",
+    "primaryBorderColor": "#2F6B53",
+    "lineColor": "#456B5A",
+    "secondaryColor": "#FFF3D6",
+    "tertiaryColor": "#E5EEF9",
+    "clusterBkg": "#F7FAF8",
+    "clusterBorder": "#9CB8AA"
+  },
+  "flowchart": {
+    "curve": "basis",
+    "nodeSpacing": 30,
+    "rankSpacing": 40
+  }
+} }%%
+flowchart LR
+  browser["Browser UI<br/>public/index.html"] -->|HTTP + SSE| server["Express Server<br/>src/server.js"]
+
+  subgraph runtime["Online Query Path"]
+    server --> engine["ChatEngine<br/>src/chatEngine.js"]
+    engine --> mode["Retrieval Mode Resolver<br/>lexical | semantic | hybrid"]
+    mode --> store["VectorStore<br/>SQLite chunk index"]
+    mode --> embed["EmbeddingEngine<br/>local ONNX model"]
+    store --> context["Top-K chunks + scores"]
+    embed --> context
+    context --> prompt["Prompt assembly<br/>context + history + system prompt"]
+    prompt --> model["Foundry Local chat model"]
+    model --> answer["Grounded answer + sources"]
+    answer --> server
+  end
+
+  subgraph ingest["Offline Ingestion Path"]
+    docs["Markdown procedures<br/>docs/*.md"] --> chunker["Chunker<br/>front matter + text splitting"]
+    chunker --> ingestScript["Ingest script<br/>src/ingest.js"]
+    ingestScript --> embedBatch["Batch embeddings<br/>optional"]
+    ingestScript --> storeWrite["Persist chunks + TF vectors"]
+    embedBatch --> storeWrite
+    storeWrite --> db[("SQLite database<br/>data/")]
+  end
+
+  store --- db
+  embed -. local model files .-> modelAssets["models/embeddings/.../model.onnx"]
+  model -. local runtime .-> foundryRuntime["Foundry Local runtime"]
+
+  classDef app fill:#E7F1ED,stroke:#2F6B53,color:#153B2E,stroke-width:1.5px;
+  classDef data fill:#FFF3D6,stroke:#B27A00,color:#5A4100,stroke-width:1.5px;
+  classDef infra fill:#E5EEF9,stroke:#4167A8,color:#16325C,stroke-width:1.5px;
+
+  class browser,server,engine,mode,chunker,ingestScript,prompt,answer app;
+  class store,context,docs,db,storeWrite,embedBatch data;
+  class embed,model,modelAssets,foundryRuntime infra;

@@ -1,0 +1,44 @@
+{
+  "name": "local-hybrid-retrival-onnx",
+  "version": "1.0.0",
+  "description": "Offline hybrid RAG sample with lexical retrieval plus local ONNX embeddings for semantic search",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ingest": "node src/ingest.js",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.7.2",
+    "better-sqlite3": "^11.7.0",
+    "express": "^4.21.0",
+    "foundry-local-sdk": "^0.9.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leestott/local-hybrid-retrival-onnx.git"
+  },
+  "bugs": {
+    "url": "https://github.com/leestott/local-hybrid-retrival-onnx/issues"
+  },
+  "homepage": "https://github.com/leestott/local-hybrid-retrival-onnx#readme",
+  "keywords": [
+    "rag",
+    "hybrid-retrieval",
+    "onnx",
+    "embeddings",
+    "offline-ai",
+    "foundry-local",
+    "phi-3",
+    "gas-field",
+    "support-agent",
+    "sqlite",
+    "tfidf"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
