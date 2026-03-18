@@ -76,6 +76,38 @@ npm install
 - `.env*` is ignored so machine-specific settings do not leak into the public repository.
 - `node_modules/` is ignored and should be recreated with `npm install`.
 
+## Required Local Models
+
+The embedding model is not included in the repository because model weights are large and may carry separate distribution terms. To enable semantic and hybrid retrieval on a fresh clone:
+
+1. Download **BGE-small-en-v1.5** in ONNX format from Hugging Face:
+
+   ```powershell
+   # Using the Hugging Face CLI (pip install huggingface-hub)
+   huggingface-cli download BAAI/bge-small-en-v1.5 --local-dir models/embeddings/bge-small-en-v1.5
+   ```
+
+2. Verify the expected file layout:
+
+   ```text
+   models/embeddings/bge-small-en-v1.5/
+     config.json            (~743 B)
+     tokenizer.json         (~695 KB)
+     tokenizer_config.json  (~366 B)
+     onnx/
+       model.onnx           (~127 MB)
+   ```
+
+3. Alternatively, point to any Transformers.js-compatible ONNX model directory:
+
+   ```powershell
+   $env:EMBEDDING_MODEL_PATH = "C:\path\to\your\embedding-model"
+   ```
+
+If the model is absent or fails to load, the app still works using lexical-only retrieval.
+
+You can verify model availability after starting the server by checking the `/api/health` endpoint, which lists the embedding model files it found.
+
 ## Ingest Documents
 
 ```powershell

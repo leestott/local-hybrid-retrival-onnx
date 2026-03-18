@@ -216,9 +216,21 @@ async function start() {
   engine.onStatus((status) => broadcastStatus(status));
 
   // Start the HTTP server first so the UI is immediately accessible
-  app.listen(config.port, config.host, () => {
+  const server = app.listen(config.port, config.host, () => {
     console.log(`[Server] UI available at http://${config.host}:${config.port}`);
     console.log("[Server] Initializing model in background...\n");
+  });
+
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(
+        `[Server] Port ${config.port} is already in use.\n` +
+        `  → Stop the other process or set a different port:\n` +
+        `    $env:PORT = 3001; npm start`
+      );
+      process.exit(1);
+    }
+    throw err;
   });
 
   // Initialize the engine (downloads model if needed, loads it)

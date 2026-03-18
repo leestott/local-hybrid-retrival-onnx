@@ -5,6 +5,8 @@
  * Selects the hardware-optimised model variant automatically and
  * reports download/load progress via a status callback.
  */
+import fs from "fs";
+import path from "path";
 import { FoundryLocalManager } from "foundry-local-sdk";
 import { VectorStore } from "./vectorStore.js";
 import { EmbeddingEngine } from "./embeddingEngine.js";
@@ -132,9 +134,31 @@ export class ChatEngine {
       fallbackMode: config.fallbackRetrievalMode,
       semanticAvailable: this.semanticAvailable,
       embeddingModelPath: config.embeddingModelPath,
+      embeddingModelFiles: this._listEmbeddingModelFiles(),
       indexedChunks: this.store ? this.store.count() : 0,
       embeddedChunks: this.store ? this.store.countEmbeddings() : 0,
     };
+  }
+
+  _listEmbeddingModelFiles() {
+    const modelDir = config.embeddingModelPath;
+    if (!modelDir || !fs.existsSync(modelDir) || !fs.statSync(modelDir).isDirectory()) {
+      return [];
+    }
+    const files = [];
+    const walk = (dir) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory()) {
+          walk(path.join(dir, entry.name));
+        } else {
+          const full = path.join(dir, entry.name);
+          const rel = path.relative(modelDir, full);
+          files.push({ name: rel, bytes: fs.statSync(full).size });
+        }
+      }
+    };
+    walk(modelDir);
+    return files;
   }
 
   async indexDocument(docId, title, category, chunks) {

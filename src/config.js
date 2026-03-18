@@ -33,7 +33,7 @@ export const config = {
   ),
 
   // Server
-  port: 3000,
+  port: parseInt(process.env.PORT, 10) || 3000,
   host: "127.0.0.1",
 
   // UI
